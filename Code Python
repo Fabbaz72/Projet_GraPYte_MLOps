@@ -1,0 +1,162 @@
+#Import de toutes les librairies nécessaires
+
+import pandas as pd
+import numpy as np
+import xgboost as xgb
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+from sklearn.feature_selection import SelectKBest, f_classif, SelectFromModel
+from sklearn.linear_model import SGDClassifier 
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from collections import Counter
+from xgboost import plot_importance
+from matplotlib import pyplot
+
+#Création des DF
+df_users=pd.read_csv("users.csv")
+df_places=pd.read_csv("places.csv",low_memory=False)
+df_caract=pd.read_csv("caracteristics.csv",encoding='ISO-8859-1',low_memory=False)
+df_veh=pd.read_csv("vehicles.csv")
+
+#Merge des données
+df_projet_brut=pd.merge(df_users, df_veh, how='left', on=["Num_Acc", "num_veh"])
+df_projet_brut=pd.merge(df_projet_brut, df_caract, how='left', on=["Num_Acc"])
+df_projet_brut=pd.merge(df_projet_brut, df_places, how='left', on=["Num_Acc"])
+
+#On nettoie le fichier df_projet_brut
+    #On supprime les variables gps, lat et long car il y a beaucoup de NaN et pas utile pour la gravité car variable de géolocalisation
+    #On supprime les variables voie, v1 et v2 car il y a beaucoup de NaN et pas utiles pour la gravité car des variables indiquant des numéros de rue comme la variable adr_car
+    #On supprime les variables pr et pr1 car beaucoup de NaN et pas utlies pour la gravité car des variables relative au lieu d'habitation.
+    #On supprime la variable infra car beaucoup de valeurs en 0 (valeurs non indiquées dans les définitions.
+    #On supprime la variable Num_Acc car ce n'est pas une variable explicative
+    #On supprume la variable com (Comummune) fortement correlée avec dep (departement) 
+    #On supprume la variable nbv car beaucoup de catégories (53) et les informations que nous avons besons sont dans circ(type de route avec nb de voie)
+    #On supprime la variable senc (sens de circulation) énormement d'inconnu a + de 90%
+    #On suppriume la varibale place (place dans le vehicule) car la variable catu donne deja le type de user a savoir, conducteur, passager
+
+to_drop=['gps','lat','long','voie','v1','v2','adr','pr','pr1','infra','Num_Acc','com', 'nbv','senc','place']
+df_projet_brut_2=df_projet_brut.drop(to_drop,axis=1)
+
+# Retraitement Variables:
+
+# catv (99 catégories) on retraire en: vehicule 2 roues, vehicule non carrossé (hors 2 roues), 
+# vehicule leger carrosé, vehicule leger carrosé avec attelage (remorque, caravanne), poids lourd et transport en commun.
+# 2 Roues,1,Commun,3,Inconnu,0,Poids Lourds,4,VL Attelage,5,VL Carrose,2,VL Non Carrose,6,
+catv_value = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,30,31,32,33,34,35,36,37,38,39,40,41,42,43,50,60,80,99]
+catv_value_new = [0,1,1,2,1,1,6,2,5,5,5,5,5,4,4,4,4,4,3,3,4,4,1,1,1,1,1,6,6,3,3,3,3,1,1,1,1,1,0,0]
+df_projet_brut_2['catv'].replace(catv_value, catv_value_new, inplace = True)
+
+#plan = rectiligne ou type de courbes. On retraite en 0 rectiligne 1 courbe
+plan_value = [1,2,3,4]
+plan_value_new = [0,1,1,1]
+df_projet_brut_2['plan'].replace(plan_value, plan_value_new, inplace = True)
+
+#secu. Retraitement en indiquant si existance d'un materiel de securité et utilisé (casque, ceinture de secu, etc)
+# Valeurs actuelles
+secu_value = df_projet_brut_2['secu'].value_counts().index.tolist()
+# Nlle valeur indique si utilisation d'un element de scurité (0) sinon (1) (1 integre la non connaissance et nan)
+secu_new = [0, 0, 1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1]
+#Nlle colonne new_secu
+df_projet_brut_2['New_secu'] = df_projet_brut_2['secu']
+df_projet_brut_2['New_secu'].replace(secu_value, secu_new, inplace = True)
+df_projet_brut_2 = df_projet_brut_2.drop('secu', axis = 1)
+
+#Grav
+df_projet_brut_2['grav'].replace([1, 2, 3,4],[0, 1, 1, 0], inplace=True)
+
+# Travail sur les valeurs de la variable num_veh
+
+num_veh = df_projet_brut['num_veh'].value_counts(normalize = True)*100 #en dessous de la 5eme valeur on descend à une contribution de moins de 1%
+
+X_num=df_projet_brut_2.select_dtypes(include=['float64','int64'])
+X_cat=df_projet_brut_2.select_dtypes('object')
+X_cat=pd.get_dummies(X_cat)
+df_projet_brut_3=pd.concat([X_num,X_cat], axis=1)
+
+num_veh_to_drop = num_veh.tail(124).index
+append_str = 'num_veh_'
+num_veh_to_drop = [append_str + sub for sub in num_veh_to_drop]
+df_projet_brut_3 = df_projet_brut_3.drop(num_veh_to_drop, axis = 1)
+
+df_projet_brut_3 = df_projet_brut_3.dropna(axis = 1, how='all')
+df_projet_brut_3 = df_projet_brut_3.dropna(axis = 0, how='any')
+
+target=df_projet_brut_3['grav']
+feats=df_projet_brut_3.drop(['grav'],1)
+
+select = SelectKBest(f_classif, k= 20)
+
+# ici l'idée n'est pas de faire un train et test mais de capturer les features les plus contingentes à la target
+# Donc on prends le dataset complet avec la target dualisée (Grave vs Pas grave)
+
+select.fit_transform(feats, target)
+
+feats_KBest = feats.columns[select.get_support()]
+print("les 20 va les plus explicatives selectionnées sont:", feats.columns[select.get_support()])
+
+# Selection des best features selon SelectFromModel
+
+selector_mean = SelectFromModel(SGDClassifier(random_state = 0), threshold = 'mean')
+
+selector_mean.fit_transform(feats, target)
+
+feats_sgdc_mean = feats.columns[selector_mean.get_support()]
+print("les va les plus explicatives selectionnées sont:", feats.columns[selector_mean.get_support()])
+
+# Selection des best features par la mediane pour des va catégorielles
+
+selector_median = SelectFromModel(SGDClassifier(random_state = 0), threshold = 'median')
+
+selector_median.fit_transform(feats, target)
+
+feats_sgdc_med = feats.columns[selector_median.get_support()]
+print("les va les plus explicatives selectionnées par mediane sont:", feats.columns[selector_median.get_support()])
+
+# Utilisation d'un modele de Gradient Boosting (particulièrement adapté aux va cat par tree decision) avec New_secu
+
+#n_estimators=20, learning_rate=learning_rate, max_features=2, max_depth=2, random_state=0
+gb_clf = SelectFromModel(GradientBoostingClassifier())
+gb_clf.fit_transform(feats, target)
+
+feats_gbc = feats.columns[gb_clf.get_support()]
+print("les va les plus explicatives selectionnées par GBC sont:", feats.columns[gb_clf.get_support()])
+
+# Feature Selection : On crée un DF ne contenant que les features selectionnées precedemment
+
+keep_feats0 = feats_KBest.append(feats_sgdc_mean)
+keep_feats1 = keep_feats0.append(feats_sgdc_med)
+keep_feats = keep_feats1.append(feats_gbc)
+
+keep_feats = Counter(keep_feats).keys()
+
+print(keep_feats)
+
+feats_select = feats[keep_feats]
+
+# Création des jeux d'entrainement et de test
+
+X_train_select, X_test_select, y_train_select, y_test_select = train_test_split(feats_select, target, test_size=0.20, random_state=1234)
+
+#Entrainement et prédiction avec les paramètres optimaux
+
+xg_reg = xgb.XGBClassifier(colsample_bytree= 0.5,
+                        learning_rate= 0.1,
+                        max_depth= 12,
+                        n_estimators= 100,
+                        subsample= 1)
+
+# Entrainement du modèle et prédiction
+xg_reg.fit(X_train_select,y_train_select)
+
+pred_values = xg_reg.predict(X_test_select)
+
+#Affichage du Classification Report
+
+print(metrics.classification_report(y_test_select, pred_values))
+
+#Affichage de la Crosstab
+pd.crosstab(y_test_select, pred_values, rownames=['CLasse réelle'], colnames=['Classe prédite'])
+                     
