@@ -1,0 +1,103 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2708
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red157\green0\blue210;\red255\green255\blue254;\red0\green0\blue0;
+\red15\green112\blue1;\red0\green0\blue255;\red31\green99\blue128;\red18\green112\blue68;\red144\green1\blue18;
+\red101\green76\blue29;\red0\green0\blue109;}
+{\*\expandedcolortbl;;\cssrgb\c68627\c0\c85882;\cssrgb\c100000\c100000\c99608;\cssrgb\c0\c0\c0;
+\cssrgb\c0\c50196\c0;\cssrgb\c0\c0\c100000;\cssrgb\c14510\c46275\c57647;\cssrgb\c3529\c50588\c33725;\cssrgb\c63922\c8235\c8235;
+\cssrgb\c47451\c36863\c14902;\cssrgb\c0\c6275\c50196;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs28 \cf2 \cb3 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 import\cf0 \strokec4  joblib\cb1 \
+\cf2 \cb3 \strokec2 from\cf0 \strokec4  fastapi \cf2 \strokec2 import\cf0 \strokec4  FastAPI, Depends, HTTPException\cb1 \
+\cf2 \cb3 \strokec2 from\cf0 \strokec4  fastapi.security \cf2 \strokec2 import\cf0 \strokec4  HTTPBasic, HTTPBasicCredentials\cb1 \
+\cf2 \cb3 \strokec2 from\cf0 \strokec4  pydantic \cf2 \strokec2 import\cf0 \strokec4  BaseModel\cb1 \
+\
+\cf5 \cb3 \strokec5 # Cr\'e9ation d'une classe pour la r\'e9cup\'e9ration des donn\'e9es d'entr\'e9e\cf0 \cb1 \strokec4 \
+\cf6 \cb3 \strokec6 class\cf0 \strokec4  \cf7 \strokec7 InputData\cf0 \strokec4 (\cf7 \strokec7 BaseModel\cf0 \strokec4 ):\cb1 \
+\cb3     catu: \cf7 \strokec7 int\cf0 \strokec4  = Field(\cf8 \strokec8 1\cf0 \strokec4 , description=\cf9 \strokec9 "Cat\'e9gorie d'usager"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 3\cf0 \strokec4 )\cb1 \
+\cb3     locp: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 9.0\cf0 \strokec4 , description=\cf9 \strokec9 "Localisation du pi\'e9ton"\cf0 \strokec4 , ge=\cf8 \strokec8 0\cf0 \strokec4 , le=\cf8 \strokec8 9\cf0 \strokec4 )\cb1 \
+\cb3     actp: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 0.0\cf0 \strokec4 , description=\cf9 \strokec9 "Action du pi\'e9ton"\cf0 \strokec4 , ge=\cf8 \strokec8 0\cf0 \strokec4 , le=\cf8 \strokec8 9\cf0 \strokec4 ) \cf5 \strokec5 # actp: str = Field("0", description="Action du pi\'e9ton", max_length=1)\cf0 \cb1 \strokec4 \
+\cb3     etatp: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 1.0\cf0 \strokec4 , description=\cf9 \strokec9 "\'c9tat du pi\'e9ton"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 3\cf0 \strokec4 )\cb1 \
+\cb3     catv: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 0.0\cf0 \strokec4 , description=\cf9 \strokec9 "Cat\'e9gorie du v\'e9hicule"\cf0 \strokec4 , ge=\cf8 \strokec8 0\cf0 \strokec4 , le=\cf8 \strokec8 6\cf0 \strokec4 )\cb1 \
+\cb3     obs: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 0.0\cf0 \strokec4 , description=\cf9 \strokec9 "Obstacle fixe heurt\'e9"\cf0 \strokec4 , ge=\cf8 \strokec8 0\cf0 \strokec4 , le=\cf8 \strokec8 17\cf0 \strokec4 )\cb1 \
+\cb3     obsm: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 0.0\cf0 \strokec4 , description=\cf9 \strokec9 "Obstacle mobile heurt\'e9"\cf0 \strokec4 , ge=\cf8 \strokec8 0\cf0 \strokec4 , le=\cf8 \strokec8 9\cf0 \strokec4 )\cb1 \
+\cb3     agg: \cf7 \strokec7 int\cf0 \strokec4  = Field(\cf8 \strokec8 2\cf0 \strokec4 , description=\cf9 \strokec9 "Agglom\'e9ration"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 2\cf0 \strokec4 )\cb1 \
+\cb3     \cf7 \strokec7 int\cf0 \strokec4 : \cf7 \strokec7 int\cf0 \strokec4  = Field(\cf8 \strokec8 1\cf0 \strokec4 , description=\cf9 \strokec9 "Intersection"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 9\cf0 \strokec4 )\cb1 \
+\cb3     atm: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 0.0\cf0 \strokec4 , description=\cf9 \strokec9 "Atmosph\'e8re"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 9\cf0 \strokec4 )\cb1 \
+\cb3     col: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 1.0\cf0 \strokec4 , description=\cf9 \strokec9 "Type de collision"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 7\cf0 \strokec4 )\cb1 \
+\cb3     dep: \cf7 \strokec7 int\cf0 \strokec4  = Field(\cf8 \strokec8 85\cf0 \strokec4 , description=\cf9 \strokec9 "D\'e9partement"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 101\cf0 \strokec4 )\cb1 \
+\cb3     catr: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 1.0\cf0 \strokec4 , description=\cf9 \strokec9 "Cat\'e9gorie de route"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 9\cf0 \strokec4 )\cb1 \
+\cb3     plan: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 0.0\cf0 \strokec4 , description=\cf9 \strokec9 "Plan de la route"\cf0 \strokec4 , ge=\cf8 \strokec8 0\cf0 \strokec4 , le=\cf8 \strokec8 1\cf0 \strokec4 )\cb1 \
+\cb3     situ: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 0.0\cf0 \strokec4 , description=\cf9 \strokec9 "Situation de l'accident"\cf0 \strokec4 , ge=\cf8 \strokec8 0\cf0 \strokec4 , le=\cf8 \strokec8 8\cf0 \strokec4 )\cb1 \
+\cb3     New_secu: \cf7 \strokec7 float\cf0 \strokec4  = Field(\cf8 \strokec8 1.0\cf0 \strokec4 , description=\cf9 \strokec9 "S\'e9curit\'e9"\cf0 \strokec4 , ge=\cf8 \strokec8 1\cf0 \strokec4 , le=\cf8 \strokec8 1\cf0 \strokec4 )\cb1 \
+\cb3     num_veh_A01: \cf7 \strokec7 str\cf0 \strokec4  = Field(\cf9 \strokec9 ""\cf0 \strokec4 , description=\cf9 \strokec9 "Identifiant du v\'e9hicule A01"\cf0 \strokec4 , max_length=\cf8 \strokec8 10\cf0 \strokec4 )\cb1 \
+\cb3     num_veh_B01: \cf7 \strokec7 str\cf0 \strokec4  = Field(\cf9 \strokec9 ""\cf0 \strokec4 , description=\cf9 \strokec9 "Num\'e9ro de v\'e9hicule B01"\cf0 \strokec4 , max_length=\cf8 \strokec8 10\cf0 \strokec4 )\cb1 \
+\cb3     num_veh_B02: \cf7 \strokec7 str\cf0 \strokec4  = Field(\cf9 \strokec9 ""\cf0 \strokec4 , description=\cf9 \strokec9 "Num\'e9ro de v\'e9hicule B02"\cf0 \strokec4 , max_length=\cf8 \strokec8 10\cf0 \strokec4 )\cb1 \
+\cb3     num_veh_C01: \cf7 \strokec7 str\cf0 \strokec4  = Field(\cf9 \strokec9 ""\cf0 \strokec4 , description=\cf9 \strokec9 "Num\'e9ro de v\'e9hicule C01"\cf0 \strokec4 , max_length=\cf8 \strokec8 10\cf0 \strokec4 )\cb1 \
+\cb3     \cf5 \strokec5 #manv: float = Field(0.0, description="Man\'9cuvre principale avant l'accident", ge=0, le=24)\cf0 \cb1 \strokec4 \
+\cb3     \cf5 \strokec5 #lartpc: float = Field(0.0, description="Largeur du terre-plein central", ge=0)\cf0 \cb1 \strokec4 \
+\cb3     \cf5 \strokec5 #larrout: float = Field(0.0, description="Largeur de la chauss\'e9e", ge=0)\cf0 \cb1 \strokec4 \
+\cb3     \cf5 \strokec5 #env1: float = Field(0.0, description="Environnement", ge=0, le=99)\cf0 \cb1 \strokec4 \
+\cb3     \cf5 \strokec5 #choc: float = Field(0.0, description="Point de choc initial", ge=0, le=9)\cf0 \cb1 \strokec4 \
+\
+\cf5 \cb3 \strokec5 # Chargement du mod\'e8le \'e0 partir du fichier binaire\cf0 \cb1 \strokec4 \
+\cb3 model = joblib.load(\cf9 \strokec9 "model.joblib"\cf0 \strokec4 )\cb1 \
+\
+\cf5 \cb3 \strokec5 # D\'e9finition d'une instance FastAPI\cf0 \cb1 \strokec4 \
+\cb3 app = FastAPI()\cb1 \
+\
+\cf5 \cb3 \strokec5 # D\'e9finition du dictionnaire d'utilisateurs\cf0 \cb1 \strokec4 \
+\cb3 users = \{\cb1 \
+\cb3   \cf9 \strokec9 "fabrice"\cf0 \strokec4 : \cf9 \strokec9 "fabrice"\cf0 \strokec4 ,\cb1 \
+\cb3   \cf9 \strokec9 "jonathan"\cf0 \strokec4 : \cf9 \strokec9 "jonathan"\cf0 \strokec4 ,\cb1 \
+\cb3 \}\cb1 \
+\
+\cf5 \cb3 \strokec5 # D\'e9finition de l'objet de s\'e9curit\'e9\cf0 \cb1 \strokec4 \
+\cb3 security = HTTPBasic()\cb1 \
+\
+\cf5 \cb3 \strokec5 # Cr\'e9ation de la route qui utilise le mod\'e8le pour pr\'e9dire une sortie\cf0 \cb1 \strokec4 \
+\cf10 \cb3 \strokec10 @app.post\cf0 \strokec4 (\cf9 \strokec9 "/predict"\cf0 \strokec4 )\cb1 \
+\cf2 \cb3 \strokec2 async\cf0 \strokec4  \cf6 \strokec6 def\cf0 \strokec4  \cf10 \strokec10 predict\cf0 \strokec4 (\cf11 \strokec11 input_data\cf0 \strokec4 : \cf11 \strokec11 InputData\cf0 \strokec4 , \cf11 \strokec11 credentials\cf0 \strokec4 : \cf11 \strokec11 HTTPBasicCredentials\cf0 \strokec4  = Depends(security)):\cb1 \
+\cb3     \cf5 \strokec5 # V\'e9rifier l'authentification\cf0 \cb1 \strokec4 \
+\cb3     \cf2 \strokec2 if\cf0 \strokec4  credentials.username \cf6 \strokec6 not\cf0 \strokec4  \cf6 \strokec6 in\cf0 \strokec4  users \cf6 \strokec6 or\cf0 \strokec4  users[credentials.username] != credentials.password:\cb1 \
+\cb3         \cf5 \strokec5 # Si l'authentification \'e9choue, lever une exception HTTP 401 avec un message d'erreur\cf0 \cb1 \strokec4 \
+\cb3         \cf2 \strokec2 raise\cf0 \strokec4  HTTPException(status_code=\cf8 \strokec8 401\cf0 \strokec4 , detail=\cf9 \strokec9 "Authentification invalide"\cf0 \strokec4 )\cb1 \
+\cb3     \cb1 \
+\cb3     \cf5 \strokec5 # R\'e9cup\'e9ration des donn\'e9es d'entr\'e9e de la requ\'eate\cf0 \cb1 \strokec4 \
+\cb3     input_features = [\cb1 \
+\cb3         input_data.catu,\cb1 \
+\cb3         input_data.locp,\cb1 \
+\cb3         input_data.actp,\cb1 \
+\cb3         input_data.etatp,\cb1 \
+\cb3         input_data.catv,\cb1 \
+\cb3         input_data.obs,\cb1 \
+\cb3         input_data.obsm,\cb1 \
+\cb3         input_data.agg,\cb1 \
+\cb3         input_data.\cf7 \strokec7 int\cf0 \strokec4 ,\cb1 \
+\cb3         input_data.atm,\cb1 \
+\cb3         input_data.col,\cb1 \
+\cb3         input_data.dep,\cb1 \
+\cb3         input_data.plan,\cb1 \
+\cb3         input_data.situ,\cb1 \
+\cb3         input_data.New_secu,\cb1 \
+\cb3         input_data.num_veh_A01,\cb1 \
+\cb3         input_data.num_veh_B01,\cb1 \
+\cb3         input_data.num_veh_B02,\cb1 \
+\cb3         input_data.num_veh_C01,\cb1 \
+\cb3         input_data.manv,\cb1 \
+\cb3         input_data.lartpc,\cb1 \
+\cb3         input_data.larrout,\cb1 \
+\cb3         input_data.env1,\cb1 \
+\cb3         input_data.choc\cb1 \
+\cb3     ]\cb1 \
+\cb3     \cb1 \
+\cb3     \cf5 \strokec5 # Utilisation du mod\'e8le pour pr\'e9dire une sortie\cf0 \cb1 \strokec4 \
+\cb3     output = model.predict(input_features)\cb1 \
+\cb3     \cb1 \
+\cb3     \cf5 \strokec5 # Renvoi de la sortie pr\'e9dite\cf0 \cb1 \strokec4 \
+\cb3     \cf2 \strokec2 return\cf0 \strokec4  \{\cf9 \strokec9 "output"\cf0 \strokec4 : output\}\cb1 \
+}
